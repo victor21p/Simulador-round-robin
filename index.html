@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101b32">
+  <meta name="description" content="Simulador interativo do algoritmo de escalonamento preemptivo Round Robin, com gráfico de Gantt e cálculo de espera e ciclo de vida.">
+  <title>Simulador Round Robin</title>
+  <style>
+    :root { color-scheme: light; --navy:#111c33; --navy2:#1b2a48; --blue:#4868ef; --teal:#0f9b8e; --ink:#182339; --muted:#68758b; --bg:#f3f6fa; --surface:#fff; --line:#e1e6ee; --shadow:0 12px 40px rgba(20,34,62,.07); --r:18px; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; font-size:14px; line-height:1.5; }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.45; }
+    :focus-visible { outline:3px solid #97b1fb; outline-offset:3px; }
+    .top { background:var(--navy); color:#fff; }
+    .shell { max-width:1190px; margin:0 auto; padding:0 24px; }
+    .nav { height:70px; display:flex; align-items:center; justify-content:space-between; gap:20px; border-bottom:1px solid rgba(255,255,255,.12); }
+    .brand { display:flex; align-items:center; gap:12px; color:#fff; text-decoration:none; font-weight:760; letter-spacing:-.4px; font-size:17px; }
+    .brandmark { width:38px; height:38px; display:grid; place-items:center; color:#fff; font-size:12px; letter-spacing:0; border:1px solid rgba(255,255,255,.25); border-radius:12px; background:linear-gradient(135deg,#547af6,#38b7a1); }
+    .navlinks { display:flex; gap:22px; }
+    .navlinks a { color:#bfcade; text-decoration:none; font-weight:550; }
+    .navlinks a:hover { color:#fff; }
+    .hero { padding:52px 0 61px; display:flex; align-items:center; justify-content:space-between; gap:40px; }
+    .hero h1 { max-width:660px; margin:10px 0 14px; font-size:clamp(31px,4.1vw,51px); line-height:1.12; letter-spacing:-1.9px; }
+    .hero-art { flex:0 0 250px; width:250px; padding:23px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); border-radius:22px; }
+    .mini-title { font-size:11px; color:#b9c7dd; margin-bottom:17px; }
+    .mini-bars { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; align-items:end; height:68px; }
+    .mini-bars div { border-radius:8px 8px 3px 3px; background:#5a78ee; }
+    .mini-bars div:nth-child(1){ height:68%; }.mini-bars div:nth-child(2){ height:96%; background:#2ac9b8; }.mini-bars div:nth-child(3){ height:41%; background:#f3b963; }
+    .mini-label { display:flex; justify-content:space-between; margin-top:13px; font-size:11px; color:#a8b8d1; }
+    main { margin-top:-29px; position:relative; z-index:1; padding-bottom:70px; }
+    .columns { display:grid; grid-template-columns:370px minmax(0,1fr); gap:22px; align-items:start; }
+    .panel { border:1px solid var(--line); background:var(--surface); border-radius:var(--r); box-shadow:var(--shadow); }
+    .panel-head { padding:22px 24px 18px; display:flex; justify-content:space-between; gap:12px; align-items:center; border-bottom:1px solid var(--line); }
+    h2 { font-size:18px; letter-spacing:-.4px; margin:0; }
+    .hint { margin:5px 0 0; color:var(--muted); font-size:12px; }
+    .panel-body { padding:23px 24px 24px; }
+    .tag { font-size:11px; font-weight:750; color:#287264; background:#e9f8f2; border-radius:100px; padding:5px 10px; white-space:nowrap; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .field label,.input-head label { display:block; font-weight:700; color:#42506a; margin-bottom:7px; font-size:12px; }
+    input[type=number] { min-width:0; width:100%; height:45px; border:1px solid #dce2ed; background:#fff; color:var(--ink); border-radius:11px; padding:0 12px; outline:none; font-weight:650; }
+    input[type=number]:focus { border-color:#5678ee; box-shadow:0 0 0 3px rgba(86,120,238,.12); }
+    .field-note { font-size:11px; color:var(--muted); margin:6px 0 0; }
+    .section-head { display:flex; justify-content:space-between; align-items:center; margin:21px 0 10px; }
+    .section-head strong { font-size:12px; color:#42506a; }
+    .add { font-size:12px; font-weight:700; background:none; border:none; color:#385ce9; padding:5px; }
+    .processes { display:flex; flex-direction:column; gap:8px; }
+    .process-item { display:grid; grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 34px; align-items:start; gap:8px; }
+    .process-label { margin-top:0; }
+    .process-columns { display:grid; grid-template-columns:40px minmax(0,1fr) minmax(0,1fr) 34px; gap:8px; margin:0 0 7px; color:#718098; font-size:11px; font-weight:750; }
+    .process-input { min-width:0; }
+    .process-input input { width:100%; }
+    .field-error { display:block; min-height:0; font-size:10px; color:#ab3542; line-height:1.35; }
+    .field-error:empty { display:none; }
+    .field .field-error { margin-top:4px; }
+    input[type=number].has-error { border-color:#d65b63; box-shadow:0 0 0 2px rgba(214,91,99,.1); }
+    .stale-note { margin:12px 0 0; padding:9px 12px; border:1px solid #e8e1c4; background:#fffaf0; color:#80631d; border-radius:9px; font-size:12px; font-weight:650; }
+    .queue-board { display:grid; grid-template-columns:minmax(135px,.7fr) minmax(0,1.5fr); gap:12px; margin-top:15px; }
+    .queue-box { padding:13px 14px; border:1px solid #dce6ed; background:#f3faf9; border-radius:12px; }
+    .queue-box-label { color:#527071; font-size:11px; font-weight:750; display:block; margin-bottom:5px; }
+    .queue-cpu { color:#184e5b; font-size:17px; font-weight:800; }
+    .queue-items { display:flex; gap:6px; align-items:center; flex-wrap:wrap; min-height:26px; }
+    .queue-chip { color:#215b58; background:#d8f1ec; border:1px solid #afe0d7; padding:4px 9px; border-radius:7px; font-size:12px; font-weight:800; }
+    .queue-arrow { color:#4d7b7a; font-weight:800; }
+    .queue-empty { color:#687c7b; font-size:12px; }
+    .gantt-window { color:#718098; margin:6px 0 0; font-size:11px; }
+    .slice { transition:opacity .2s ease,transform .2s ease,box-shadow .2s ease; }
+    .slice.is-future { opacity:.35; filter:saturate(.7); }
+    .slice.is-current { outline:3px solid #0ab1a2; outline-offset:3px; box-shadow:0 0 0 6px rgba(10,177,162,.16),0 6px 20px rgba(16,40,80,.25); transform:translateY(-2px) scale(1.035); z-index:2; opacity:1; }
+    .slice.is-idle { color:#fff; }
+    .process-label { display:grid; place-items:center; background:#eaf0ff; color:#3d58aa; border-radius:10px; height:42px; font-weight:800; font-size:12px; }
+    .process-item input { height:42px; padding:0 9px; }
+    .remove { border:1px solid #e2e6ee; width:34px; height:34px; border-radius:9px; background:#fff; color:#8390a2; font-size:20px; line-height:1; }
+    .remove:hover { background:#fff0ef; color:#cf4c41; }
+    .actions { margin-top:22px; display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .btn { border:0; min-height:43px; padding:10px 14px; border-radius:11px; font-weight:750; font-size:12px; display:inline-flex; align-items:center; justify-content:center; gap:7px; text-decoration:none; transition:transform .12s,background .12s; }
+    .btn:active:not(:disabled){ transform:translateY(1px); }
+    .btn.primary { color:#fff; background:var(--blue); }
+    .btn.primary:hover { background:#3859d9; }
+    .btn.soft { color:#374762; background:#eff2f7; }
+    .btn.soft:hover { background:#e3e8f0; }
+    .btn.outline { color:#35445e; background:#fff; border:1px solid #dce3ee; }
+    .btn.outline:hover { background:#f8fafd; }
+    .btn.full { width:100%; }
+    .example { width:100%; margin-top:11px; padding:8px; border:none; background:transparent; color:#4761a0; font-size:12px; font-weight:700; }
+    .example:hover { text-decoration:underline; }
+    .error { display:none; padding:11px 12px; margin:11px 0 0; color:#9d2c30; border-radius:10px; background:#fff0f0; font-size:12px; }
+    .error.show { display:block; }
+    .right-stack { display:grid; gap:20px; }
+    .placeholder { padding:70px 35px; text-align:center; color:var(--muted); }
+    .placeholder-symbol { display:grid; place-items:center; width:65px; height:65px; font-size:27px; margin:0 auto 15px; color:#536a97; background:#edf1fb; border-radius:20px; }
+    .placeholder h3 { margin:0 0 6px; color:#31415b; font-size:16px; }
+    .placeholder p { margin:0 auto; max-width:320px; font-size:13px; }
+    .metrics { padding:21px 24px; display:grid; grid-template-columns:repeat(3,1fr); gap:13px; }
+    .metric { padding:16px; border:1px solid var(--line); border-radius:13px; background:#fbfcff; }
+    .metric-label { font-size:11px; font-weight:650; color:#718099; }
+    .metric-value { display:block; font-size:26px; line-height:1.4; font-weight:800; color:#243657; letter-spacing:-.9px; margin-top:2px; }
+    .metric-sub { font-size:10px; color:#8c98aa; }
+    .sim-head { padding:21px 24px 15px; display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap; }
+    .step-label { color:#6b788e; font-size:12px; font-weight:700; }
+    .progress { width:100%; height:6px; border-radius:20px; background:#ebeff6; overflow:hidden; margin:0 0 17px; }
+    .progress-fill { display:block; background:linear-gradient(90deg,#5a77ed,#0ba993); height:100%; width:0%; transition:width .25s; }
+    .gantt-area { padding:0 24px 22px; }
+    .gantt-wrap { border:1px solid var(--line); border-radius:13px; background:#f8faff; padding:15px 12px 9px; overflow-x:auto; }
+    .gantt { display:flex; gap:3px; min-height:73px; width:max-content; min-width:100%; align-items:stretch; }
+    .slice { border-radius:9px; min-width:58px; padding:10px 9px 8px; display:flex; flex-direction:column; justify-content:space-between; flex:0 0 auto; color:#fff; position:relative; }
+    .slice small { opacity:.85; font-size:10px; }
+    .slice strong { font-size:13px; }
+    
+    .legend { margin-top:12px; display:flex; gap:14px; flex-wrap:wrap; }
+    .legend-entry { display:flex; gap:6px; align-items:center; color:#7b879a; font-size:11px; font-weight:650; }
+    .dot { width:8px; height:8px; border-radius:3px; }
+    .step-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:16px; }
+    .status { padding:12px 14px; margin-top:14px; border:1px solid #e0e8fa; background:#f3f7ff; color:#51637f; border-radius:11px; font-size:12px; }
+    .table-scroll { width:100%; overflow:auto; }
+    table { border-collapse:collapse; width:100%; min-width:530px; }
+    th,td { padding:13px 18px; text-align:left; border-bottom:1px solid #e8ecf3; white-space:nowrap; }
+    th { color:#718098; background:#fafbfe; text-transform:uppercase; font-size:10px; letter-spacing:.7px; }
+    td { font-weight:600; color:#33425c; font-size:12px; }
+    tr:last-child td { border-bottom:0; }
+    .pill { display:inline-flex; border-radius:7px; padding:3px 8px; font-weight:800; background:#eaf0ff; color:#4061c5; }
+    .muted { color:#a0acbb; }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:15px 23px; border-top:1px solid var(--line); flex-wrap:wrap; }
+    .toolbar p { margin:0; color:var(--muted); font-size:11px; }
+    .toolbar-buttons { display:flex; gap:8px; }
+    .lower { margin-top:24px; display:grid; grid-template-columns:minmax(0,1fr); gap:22px; }
+    .lower .panel { box-shadow:none; }
+    .prose { padding:22px 24px; color:#607088; font-size:13px; }
+    .prose p { margin:0 0 12px; }
+    .prose p:last-child { margin-bottom:0; }
+    .prose strong { color:#283b58; }
+    .flowline { display:flex; flex-wrap:wrap; gap:7px; margin:14px 0; align-items:center; }
+    .flowline span { padding:6px 9px; background:#eef3ff; color:#3c5883; border-radius:7px; font-weight:700; font-size:11px; }
+    .flowline b { color:#a1abc0; font-size:15px; }
+    .hidden { display:none !important; }
+
+    /* Painel de estados: não representa bloqueio/E/S, que não faz parte desta simulação. */
+    .states-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; padding:20px 24px 12px; }
+    .state-lane { min-width:0; min-height:142px; background:#f8fafd; border:1px solid #e0e7ef; border-radius:13px; padding:12px; }
+    .state-lane.is-running { background:#f0fbf8; border-color:#a9dcd2; }
+    .state-lane.is-done { background:#f6faf8; }
+    .state-heading { display:flex; align-items:center; justify-content:space-between; gap:5px; font-size:11px; font-weight:800; color:#4e5d76; margin-bottom:13px; }
+    .state-count { background:#e8eef6; color:#4d5f80; border-radius:8px; min-width:23px; padding:2px 5px; text-align:center; font-size:11px; }
+    .state-lane.is-running .state-count { background:#cceee7; color:#08746a; }
+    .state-processes { display:flex; flex-wrap:wrap; align-content:flex-start; gap:6px; min-height:60px; }
+    .state-chip { padding:6px 9px; font-size:12px; font-weight:800; border:1px solid #cfd8e8; background:#e8edf5; color:#52627e; border-radius:8px; animation:state-enter .22s ease both; }
+    .state-chip.ready { background:#e9efff; color:#3658a7; border-color:#c8d5fc; }
+    .state-chip.running { background:#0f9b8e; color:#fff; border-color:#0b8b7e; box-shadow:0 0 0 3px rgba(15,155,142,.12); animation:state-enter .22s ease both, cpu-glow 1.7s ease-in-out infinite; }
+    .state-chip.done { background:#dbf2e6; color:#2f7355; border-color:#b9e4cf; }
+    .state-placeholder { font-size:11px; color:#9aa6b6; padding:6px 0; }
+    .state-note { margin:0; padding:0 24px 20px; font-size:11px; line-height:1.55; color:#68758b; }
+    .play-controls { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:11px; border-top:1px solid #e8edf4; padding-top:13px; }
+    .speed-label { font-size:12px; font-weight:700; color:#52617b; }
+    .speed-select { min-height:39px; border-radius:10px; border:1px solid #dce3ee; color:#33435b; background:#fff; padding:0 10px; font:inherit; font-weight:700; }
+    .play-hint { margin:0; color:#8792a5; font-size:11px; }
+    @keyframes state-enter { from { opacity:.1; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes cpu-glow { 0%,100% {box-shadow:0 0 0 3px rgba(15,155,142,.12);} 50% {box-shadow:0 0 0 6px rgba(15,155,142,.19);} }
+    @media(max-width:1100px) { .states-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:510px) { .states-grid { padding:16px; gap:8px; } .state-lane{min-height:124px;padding:10px;} .state-heading{font-size:10px;} .state-note{padding:0 17px 17px;} .play-controls .btn{flex:1;} }
+    @media(prefers-reduced-motion:reduce) { .state-chip,.slice,.progress-fill {animation:none!important;transition:none!important;} html{scroll-behavior:auto;} }
+    @media print { .play-controls { display:none!important; } .states-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+    @media(max-width:950px){ .columns { grid-template-columns:320px minmax(0,1fr); } .hero-art{ display:none; } .metrics{grid-template-columns:repeat(3,minmax(0,1fr));} .metric{padding:12px;} .metric-value{font-size:23px;} }
+    @media(max-width:760px){ .shell{padding:0 14px;} .columns{grid-template-columns:minmax(0,1fr)!important;} .columns > *, .panel, .right-stack{min-width:0;} .nav{height:62px;} .navlinks{gap:10px;font-size:12px;} .hero{padding:40px 0 60px;} .hero h1{letter-spacing:-1px;} .columns{grid-template-columns:1fr;} .panel-head,.panel-body,.metrics,.gantt-area,.sim-head{padding-left:17px;padding-right:17px;} .metrics{gap:7px;} .metric{padding:12px 9px;} .metric-value{font-size:21px;} .metric-label{font-size:10px;} .lower{grid-template-columns:1fr;} .table-scroll{max-width:100%;} .toolbar{padding:14px 17px;} }
+    @media(max-width:510px){ .queue-board{grid-template-columns:1fr;} .process-item,.process-columns{grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 30px;gap:5px;} .process-item input{padding:0 6px;} .process-label{font-size:11px;} }
+    @media(max-width:410px){ .hero h1{font-size:31px;} .field-row{gap:8px;} .actions{grid-template-columns:1fr;} .metrics{grid-template-columns:1fr 1fr;} .metrics .metric:last-child{grid-column:span 2;} }
+    @media print { .top{background:#fff!important;color:#111!important;} .navlinks,.actions,.step-actions,.toolbar-buttons,.example,.add,.remove,.stale-note{display:none!important;} .hero{padding:15px 0;}  .columns{display:block;} .panel{box-shadow:none;break-inside:avoid;margin-bottom:12px;} .lower{display:none;} main{margin-top:0;} body{background:#fff;} }
+  </style>
+</head>
+<body>
+<header class="top" id="inicio">
+  <div class="shell">
+    <nav class="nav" aria-label="Navegação">
+      <a class="brand" href="#inicio"><span class="brandmark">RR</span> Simulador Round Robin</a>
+      <div class="navlinks"><a href="#simulador">Simulador</a><a href="#conceitos">Como funciona</a></div>
+    </nav>
+    <div class="hero">
+      <div>
+        <h1>Simulador Round Robin</h1>
+      </div>
+      
+    </div>
+  </div>
+</header>
+<main class="shell" id="simulador">
+  <div class="columns">
+    <section class="panel" aria-label="Configuração">
+      <div class="panel-head"><div><h2>Configurar simulação</h2><p class="hint">Preencha os parâmetros do algoritmo.</p></div><span class="tag">Entrada</span></div>
+      <div class="panel-body">
+        <div class="field-row">
+          <div class="field"><label for="n">Nº de processos</label><input type="number" id="n" min="1" max="20" step="1" value="3"><p class="field-note">De 1 a 20</p><small class="field-error" id="n-error"></small></div>
+          <div class="field"><label for="quantum">Quantum (CPU)</label><input type="number" id="quantum" min="1" max="500" step="1" value="2"><p class="field-note">Inteiro de 1 a 500</p><small class="field-error" id="quantum-error"></small></div>
+        </div>
+        <div class="section-head"><strong>Processos: execução e chegada</strong><button type="button" class="add" id="add">+ Adicionar</button></div><div class="process-columns" aria-hidden="true"><span></span><span>Execução</span><span>Chegada</span><span></span></div>
+        <div id="process-list" class="processes" aria-label="Tempos dos processos"></div>
+        <div class="error" role="alert" id="error"></div><div id="stale-note" class="stale-note hidden" role="status">Resultado desatualizado — execute novamente para atualizar.</div>
+        <div class="actions"><button type="button" class="btn primary" id="simulate">▶ Simular tudo</button><button type="button" class="btn soft" id="step-from-start">↪ Passo a passo</button></div>
+        <button type="button" class="example" id="example">Restaurar exemplo: P1=5, P2=3, P3=1</button>
+      </div>
+    </section>
+    <div class="right-stack">
+      <section class="panel" aria-label="Resumo da simulação">
+        <div class="panel-head"><div><h2>Visão geral</h2><p class="hint">Indicadores calculados pelo escalonador.</p></div><span class="tag">Resultados</span></div>
+        <div id="empty" class="placeholder"><div class="placeholder-symbol">▤</div><h3 id="empty-title">Pronto para simular</h3><p id="empty-text">Informe os processos e escolha Simular tudo ou Passo a passo.</p></div>
+        <div id="metrics" class="metrics hidden">
+          <div class="metric"><span class="metric-label">Tempo total da simulação</span><span id="m-total" class="metric-value">—</span><span class="metric-sub">unidades de tempo</span></div>
+          <div class="metric"><span class="metric-label">Espera média</span><span id="m-wait" class="metric-value">—</span><span class="metric-sub">unidades de tempo</span></div>
+          <div class="metric"><span class="metric-label">Ciclo de vida médio</span><span id="m-cycle" class="metric-value">—</span><span class="metric-sub">unidades de tempo</span></div>
+        </div>
+      </section>
+      <section class="panel hidden" id="chart-panel" aria-label="Linha do tempo da CPU">
+        <div class="sim-head"><div><h2>Gráfico de Gantt</h2><p class="hint">Ordem de utilização da CPU.</p></div><span class="step-label" id="step-count">Rodada 0/0</span></div>
+        <div class="gantt-area"><div class="progress"><span id="progress" class="progress-fill"></span></div><div class="gantt-wrap"><div id="gantt" class="gantt" aria-label="Execuções do processador"></div></div><p id="gantt-window" class="gantt-window"></p><div id="legend" class="legend"></div><div class="step-actions"><button class="btn outline" id="prev" type="button">← Anterior</button><button class="btn primary" id="next" type="button">Próxima rodada →</button><button class="btn soft" id="complete" type="button">Concluir</button><button class="btn outline" id="restart" type="button">↺ Reiniciar</button></div><div class="play-controls" aria-label="Reprodução automática">
+          <button class="btn primary" type="button" id="autoplay" aria-pressed="false">▶ Reproduzir</button>
+          <label class="speed-label" for="speed">Velocidade</label>
+          <select class="speed-select" id="speed" aria-label="Velocidade da reprodução">
+            <option value="0.5">0,5×</option><option value="1" selected>1×</option>
+            <option value="2">2×</option><option value="4">4×</option>
+          </select>
+          <p class="play-hint" id="play-hint">A reprodução avança uma fatia por vez.</p>
+        </div><div class="queue-board" aria-label="CPU e fila de prontos"><div class="queue-box"><span class="queue-box-label">CPU na rodada exibida</span><strong class="queue-cpu" id="cpu-now">—</strong></div><div class="queue-box"><span class="queue-box-label" id="queue-description">Fila de prontos</span><div class="queue-items" id="ready-queue"></div></div></div><div class="status" id="status" role="status"></div></div>
+      </section>
+      <section class="panel hidden" id="states-panel" aria-label="Estados dos processos">
+        <div class="panel-head"><div><h2>Estados dos processos</h2><p class="hint" id="states-moment">Acompanhe as transições a cada rodada.</p></div><span class="tag">Dinâmica</span></div>
+        <div class="states-grid" aria-label="Painel de estados">
+          <div class="state-lane"><div class="state-heading"><span>Aguardando chegada</span><span class="state-count" id="count-waiting">0</span></div><div class="state-processes" id="state-waiting"></div></div>
+          <div class="state-lane"><div class="state-heading"><span>Prontos</span><span class="state-count" id="count-ready">0</span></div><div class="state-processes" id="state-ready"></div></div>
+          <div class="state-lane is-running"><div class="state-heading"><span>Executando</span><span class="state-count" id="count-running">0</span></div><div class="state-processes" id="state-running"></div></div>
+          <div class="state-lane is-done"><div class="state-heading"><span>Finalizados</span><span class="state-count" id="count-done">0</span></div><div class="state-processes" id="state-done"></div></div>
+        </div>
+        <p class="state-note" id="states-note">Os estados representam o início da fatia selecionada; a fila acima registra a situação ao fim dela.</p>
+      </section>
+      <section class="panel hidden" id="table-panel" aria-label="Tabela de resultados">
+        <div class="panel-head"><div><h2>Resultados por processo</h2><p class="hint">Cálculos respeitando o tempo de chegada de cada processo.</p></div><span class="tag">Cálculos</span></div>
+        <div class="table-scroll"><table><thead><tr><th>Processo</th><th>Chegada</th><th>Execução</th><th>Espera</th><th>Conclusão</th><th>Ciclo de vida</th><th>Situação</th></tr></thead><tbody id="result-rows"></tbody></table></div>
+        <div class="toolbar"><p>Ciclo de vida = conclusão − chegada; espera = ciclo de vida − execução.</p><div class="toolbar-buttons"><button class="btn outline" id="csv" type="button">↓ Exportar CSV</button><button class="btn soft" id="print" type="button">⎙ Imprimir / PDF</button></div></div>
+      </section>
+    </div>
+  </div>
+  <div class="lower" id="conceitos">
+    <section class="panel"><div class="panel-head"><h2>Como funciona o Round Robin?</h2></div><div class="prose"><p>O <strong>Round Robin (Circular)</strong> é um algoritmo <strong>preemptivo</strong> de escalonamento. Cada processo recebe até um <strong>quantum</strong> de CPU. Se ainda houver trabalho restante, ele volta ao fim da fila de prontos.</p><div class="flowline"><span>Fila</span><b>→</b><span>Executar quantum</span><b>→</b><span>Concluiu?</span><b>→</b><span>Fim ou volta à fila</span></div><p>O algoritmo repete esse ciclo até todos os processos terminarem. Os tempos são unidades abstratas, não segundos reais.</p></div></section>
+  </div>
+</main>
+<script>
+'use strict';
+
+// ==========================================
+// 1. ALGORITMO ROUND ROBIN (independente da interface)
+// ==========================================
+const LIMITE_PROCESSOS = 20;
+const LIMITE_EXECUCAO = 500;
+const LIMITE_QUANTUM = 500;
+const LIMITE_CHEGADA = 1000000;
+
+function inteiroValido(valor, minimo, maximo) {
+  return Number.isSafeInteger(valor) && valor >= minimo && valor <= maximo;
+}
+
+/**
+ * Simula Round Robin com tempos de chegada.
+ * Aceita tanto [{ execucao, chegada }, ...] quanto [5, 3, 1]
+ * (compatibilidade com a versão antiga: chegada = 0).
+ *
+ * Ordem de desempate: chegada crescente e depois índice do processo.
+ * Chegadas durante uma fatia são enfileiradas ANTES de recolocar na fila
+ * o processo interrompido, inclusive quando chegam no fim da fatia.
+ */
+function simular(entradas, quantum) {
+  if (!Array.isArray(entradas) || entradas.length < 1 || entradas.length > LIMITE_PROCESSOS ||
+      !inteiroValido(quantum, 1, LIMITE_QUANTUM)) {
+    throw new Error('Informe de 1 a 20 processos e um quantum inteiro de 1 a 500.');
+  }
+  const dados = entradas.map((item, indice) => {
+    const execucao = typeof item === 'number' ? item : item?.execucao;
+    const chegada = typeof item === 'number' ? 0 : item?.chegada;
+    if (!inteiroValido(execucao, 1, LIMITE_EXECUCAO) ||
+        !inteiroValido(chegada, 0, LIMITE_CHEGADA)) {
+      throw new Error(`P${indice + 1}: execução deve ser de 1 a 500 e chegada de 0 a 1.000.000.`);
+    }
+    return { nome: `P${indice + 1}`, execucao, chegada, indice };
+  });
+
+  const restantes = dados.map(p => p.execucao);
+  const conclusoes = Array(dados.length).fill(null);
+  const porChegada = dados.map(p => p.indice)
+    .sort((a, b) => dados[a].chegada - dados[b].chegada || a - b);
+  const fila = [];
+  const fatias = [];
+  let proximaChegada = 0;
+  let tempo = 0;
+  let concluidos = 0;
+
+  // Admite cada processo exatamente uma vez quando ele passa a estar pronto.
+  function admitirAte(instante) {
+    while (proximaChegada < porChegada.length &&
+           dados[porChegada[proximaChegada]].chegada <= instante) {
+      fila.push(porChegada[proximaChegada]);
+      proximaChegada++;
+    }
+  }
+  const nomesNaFila = () => fila.map(i => dados[i].nome);
+  admitirAte(tempo);
+
+  while (concluidos < dados.length) {
+    if (fila.length === 0) {
+      // Não há processo pronto: a CPU fica ociosa até a próxima chegada.
+      const proximoInstante = dados[porChegada[proximaChegada]].chegada;
+      const inicio = tempo;
+      tempo = proximoInstante;
+      admitirAte(tempo);
+      fatias.push({ processo:'Ociosa', indice:-1, ociosa:true,
+        inicio, fim:tempo, duracao:tempo-inicio,
+        filaAntes:[], filaDepois:nomesNaFila() });
+      continue;
+    }
+
+    const indice = fila.shift();
+    const filaAntes = nomesNaFila();
+    const inicio = tempo;
+    const duracao = Math.min(restantes[indice], quantum);
+    tempo += duracao;
+    restantes[indice] -= duracao;
+
+    // Chegadas durante o quantum entram na fila na ordem temporal correta.
+    admitirAte(tempo);
+    if (restantes[indice] > 0) {
+      fila.push(indice);
+    } else {
+      conclusoes[indice] = tempo;
+      concluidos++;
+    }
+
+    fatias.push({ processo:dados[indice].nome, indice, ociosa:false,
+      inicio, fim:tempo, duracao,
+      filaAntes, filaDepois:nomesNaFila() });
+  }
+
+  const processos = dados.map((p, i) => {
+    const conclusao = conclusoes[i];
+    const ciclo_vida = conclusao - p.chegada;
+    return { nome:p.nome, chegada:p.chegada, execucao:p.execucao,
+      espera:ciclo_vida-p.execucao, conclusao, ciclo_vida };
+  });
+  const tempo_cpu = dados.reduce((total, p) => total + p.execucao, 0);
+  return {
+    quantum, processos, fatias,
+    tempo_total:tempo,
+    tempo_cpu,
+    tempo_ocioso:tempo-tempo_cpu,
+    espera_media:processos.reduce((s, p) => s + p.espera, 0) / processos.length,
+    ciclo_medio:processos.reduce((s, p) => s + p.ciclo_vida, 0) / processos.length
+  };
+}
+
+// ==========================================
+// 2. ESTADO E UTILITÁRIOS DA INTERFACE
+// ==========================================
+const el = id => document.getElementById(id);
+const cores = ['#5378db','#19a597','#d29538','#8c70d8','#cc6e8b','#4c8aaf','#758446','#c07453'];
+const cor = indice => indice === -1 ? '#8291a6' : cores[indice % cores.length];
+const formatar = valor => Number(valor).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+let valores = [{ execucao:5, chegada:0 }, { execucao:3, chegada:0 }, { execucao:1, chegada:0 }];
+let resultado = null;
+let rodada = 0;
+let jaSimulou = false;
+let timerReproducao = null;
+let reproduzindo = false;
+
+function converterCampo(input) {
+  const texto = input.value.trim();
+  return /^\d+$/.test(texto) ? Number(texto) : NaN;
+}
+function lerDaTela() {
+  return Array.from(el('process-list').querySelectorAll('.process-item')).map(linha => ({
+    execucao:converterCampo(linha.querySelector('.process-time')),
+    chegada:converterCampo(linha.querySelector('.process-arrival'))
+  }));
+}
+function mostrarErro(mensagem) {
+  el('error').textContent = mensagem;
+  el('error').classList.toggle('show', Boolean(mensagem));
+}
+function marcarCampo(input, mensagem) {
+  input.classList.toggle('has-error', Boolean(mensagem));
+  input.setAttribute('aria-invalid', mensagem ? 'true' : 'false');
+  const feedback = el(input.id + '-error');
+  if (feedback) feedback.textContent = mensagem;
+}
+function avisoDesatualizado(mostrar) {
+  el('stale-note').classList.toggle('hidden', !mostrar);
+  el('empty-title').textContent = mostrar ? 'Resultado desatualizado' : 'Pronto para simular';
+  el('empty-text').textContent = mostrar
+    ? 'Os parâmetros foram alterados. Execute uma nova simulação para atualizar os resultados.'
+    : 'Informe os processos e escolha Simular tudo ou Passo a passo.';
+}
+function invalidar({ alteracao = true } = {}) {
+  pararReproducao();
+  const existiaResultado = Boolean(resultado) || (jaSimulou && alteracao);
+  resultado = null;
+  rodada = 0;
+  el('empty').classList.remove('hidden');
+  el('metrics').classList.add('hidden');
+  el('chart-panel').classList.add('hidden');
+  el('states-panel').classList.add('hidden');
+  el('table-panel').classList.add('hidden');
+  avisoDesatualizado(existiaResultado);
+}
+
+/** Valida cada campo enquanto o usuário digita. */
+function validar() {
+  const nInput = el('n');
+  const qInput = el('quantum');
+  const n = converterCampo(nInput);
+  const quantum = converterCampo(qInput);
+  const quantidade = el('process-list').querySelectorAll('.process-item').length;
+  const erros = [];
+  let valido = true;
+
+  const nErro = !inteiroValido(n, 1, LIMITE_PROCESSOS) ? 'Use um inteiro de 1 a 20.' :
+    n !== quantidade ? 'A quantidade deve corresponder aos processos.' : '';
+  const qErro = !inteiroValido(quantum, 1, LIMITE_QUANTUM) ? 'Use um inteiro de 1 a 500.' : '';
+  marcarCampo(nInput, nErro);
+  marcarCampo(qInput, qErro);
+  if (nErro) { valido = false; erros.push('Quantidade de processos inválida.'); }
+  if (qErro) { valido = false; erros.push('Quantum inválido.'); }
+
+  el('process-list').querySelectorAll('.process-item').forEach((linha, i) => {
+    const execInput = linha.querySelector('.process-time');
+    const chegadaInput = linha.querySelector('.process-arrival');
+    const execucao = converterCampo(execInput);
+    const chegada = converterCampo(chegadaInput);
+    const execErro = inteiroValido(execucao, 1, LIMITE_EXECUCAO) ? '' : 'Inteiro de 1 a 500.';
+    const chegadaErro = inteiroValido(chegada, 0, LIMITE_CHEGADA) ? '' : 'Inteiro de 0 a 1.000.000.';
+    marcarCampo(execInput, execErro);
+    marcarCampo(chegadaInput, chegadaErro);
+    if (execErro || chegadaErro) {
+      valido = false;
+      erros.push(`${'P' + (i + 1)}: ${execErro ? 'execução inválida' : 'chegada inválida'}.`);
+    }
+  });
+  el('simulate').disabled = !valido;
+  el('step-from-start').disabled = !valido;
+  el('add').disabled = quantidade >= LIMITE_PROCESSOS ||
+    !inteiroValido(n, 1, LIMITE_PROCESSOS);
+  mostrarErro(erros.length ? erros.join(' ') : '');
+  return valido;
+}
+function modificouParametros() {
+  invalidar();
+  validar();
+}
+
+function criarCampo(propriedade, valor, indice) {
+  const container = document.createElement('div');
+  container.className = 'process-input';
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.inputMode = 'numeric';
+  input.step = '1';
+  input.min = propriedade === 'chegada' ? '0' : '1';
+  input.max = propriedade === 'chegada' ? String(LIMITE_CHEGADA) : String(LIMITE_EXECUCAO);
+  input.className = propriedade === 'chegada' ? 'process-arrival' : 'process-time';
+  input.id = `${propriedade}-${indice}`;
+  input.value = Number.isFinite(valor) ? String(valor) : '';
+  input.setAttribute('aria-label', `${propriedade === 'chegada' ? 'Chegada' : 'Execução'} do processo P${indice + 1}`);
+  input.setAttribute('aria-describedby', `${input.id}-error`);
+  input.addEventListener('input', modificouParametros);
+  const msg = document.createElement('small');
+  msg.id = input.id + '-error';
+  msg.className = 'field-error';
+  container.append(input, msg);
+  return container;
+}
+function renderizarProcessos() {
+  const caixa = el('process-list');
+  caixa.replaceChildren();
+  valores.forEach((p, i) => {
+    const linha = document.createElement('div');
+    linha.className = 'process-item';
+    const nome = document.createElement('span');
+    nome.className = 'process-label';
+    nome.textContent = 'P' + (i + 1);
+    const execucao = criarCampo('execucao', p.execucao, i);
+    const chegada = criarCampo('chegada', p.chegada, i);
+    const remover = document.createElement('button');
+    remover.type = 'button';
+    remover.className = 'remove';
+    remover.textContent = '×';
+    remover.title = 'Remover P' + (i + 1);
+    remover.setAttribute('aria-label', 'Remover processo P' + (i + 1));
+    remover.disabled = valores.length === 1;
+    remover.addEventListener('click', () => {
+      valores = lerDaTela();
+      valores.splice(i, 1);
+      el('n').value = String(valores.length);
+      renderizarProcessos();
+      modificouParametros();
+    });
+    linha.append(nome, execucao, chegada, remover);
+    caixa.appendChild(linha);
+  });
+  validar();
+}
+
+el('n').addEventListener('input', () => {
+  const n = converterCampo(el('n'));
+  if (inteiroValido(n, 1, LIMITE_PROCESSOS)) {
+    const atuais = lerDaTela();
+    while (atuais.length < n) atuais.push({ execucao:3, chegada:0 });
+    atuais.length = n;
+    valores = atuais;
+    renderizarProcessos();
+  }
+  modificouParametros();
+});
+el('quantum').addEventListener('input', modificouParametros);
+el('add').addEventListener('click', () => {
+  valores = lerDaTela();
+  if (valores.length >= LIMITE_PROCESSOS) return;
+  valores.push({ execucao:3, chegada:0 });
+  el('n').value = String(valores.length);
+  renderizarProcessos();
+  modificouParametros();
+});
+el('example').addEventListener('click', () => {
+  valores = [{execucao:5,chegada:0},{execucao:3,chegada:0},{execucao:1,chegada:0}];
+  el('n').value = '3';
+  el('quantum').value = '2';
+  renderizarProcessos();
+  modificouParametros();
+});
+
+// ==========================================
+// 3. EXECUÇÃO, PASSO A PASSO E VISUALIZAÇÕES
+// ==========================================
+function executar(passoAPasso) {
+  pararReproducao();
+  if (!validar()) return;
+  try {
+    resultado = simular(lerDaTela(), converterCampo(el('quantum')));
+    rodada = passoAPasso ? 0 : resultado.fatias.length;
+    jaSimulou = true;
+    avisoDesatualizado(false);
+    el('empty').classList.add('hidden');
+    el('metrics').classList.remove('hidden');
+    el('chart-panel').classList.remove('hidden');
+    el('states-panel').classList.remove('hidden');
+    el('table-panel').classList.remove('hidden');
+    el('m-total').textContent = formatar(resultado.tempo_total);
+    el('m-wait').textContent = formatar(resultado.espera_media);
+    el('m-cycle').textContent = formatar(resultado.ciclo_medio);
+    renderizarResultado();
+    if (passoAPasso) el('chart-panel').scrollIntoView({behavior:'smooth',block:'start'});
+  } catch (erro) {
+    invalidar();
+    mostrarErro(erro.message);
+  }
+}
+el('simulate').addEventListener('click', () => executar(false));
+el('step-from-start').addEventListener('click', () => executar(true));
+
+function renderizarFila(fila) {
+  const caixa = el('ready-queue');
+  caixa.replaceChildren();
+  if (!fila.length) {
+    const vazio = document.createElement('span');
+    vazio.className = 'queue-empty';
+    vazio.textContent = 'Fila vazia';
+    caixa.appendChild(vazio);
+    return;
+  }
+  fila.forEach((nome, i) => {
+    const item = document.createElement('span');
+    item.className = 'queue-chip';
+    item.textContent = nome;
+    caixa.appendChild(item);
+    if (i < fila.length - 1) {
+      const seta = document.createElement('span');
+      seta.className = 'queue-arrow';
+      seta.textContent = '→';
+      caixa.appendChild(seta);
+    }
+  });
+}
+
+function renderizarResultado() {
+  if (!resultado) return;
+  const todas = resultado.fatias;
+  const atual = rodada ? todas[rodada - 1] : null;
+  const terminou = rodada === todas.length;
+  const instanteAtual = atual ? atual.fim : 0;
+  el('step-count').textContent = `Rodada ${rodada}/${todas.length}`;
+  el('progress').style.width = `${100 * rodada / todas.length}%`;
+
+  // Para conjuntos muito grandes, só monta uma janela em torno da rodada,
+  // evitando milhares de elementos DOM sem perder os dados da simulação.
+  const MAX_FATIAS_VISIVEIS = 180;
+  const inicioJanela = todas.length <= MAX_FATIAS_VISIVEIS ? 0 :
+    Math.min(Math.max(0, rodada - 90), todas.length - MAX_FATIAS_VISIVEIS);
+  const fimJanela = Math.min(todas.length, inicioJanela + MAX_FATIAS_VISIVEIS);
+  const gantt = el('gantt');
+  gantt.replaceChildren();
+  for (let i = inicioJanela; i < fimJanela; i++) {
+    const fatia = todas[i];
+    const item = document.createElement('div');
+    const classeAtual = i === rodada - 1;
+    item.className = 'slice' + (i >= rodada ? ' is-future' : '') +
+      (classeAtual ? ' is-current' : '') + (fatia.ociosa ? ' is-idle' : '');
+    item.style.width = (58 + Math.min(fatia.duracao, 15) * 12) + 'px';
+    item.style.background = cor(fatia.indice);
+    item.title = `${fatia.processo}: instante ${fatia.inicio} até ${fatia.fim}`;
+    const nome = document.createElement('strong');
+    nome.textContent = fatia.ociosa ? 'Ociosa' : fatia.processo;
+    const periodo = document.createElement('small');
+    periodo.textContent = `${fatia.inicio} → ${fatia.fim}`;
+    item.append(nome, periodo);
+    gantt.appendChild(item);
+  }
+  const destaque = gantt.querySelector('.slice.is-current');
+  if (destaque) {
+    const faixa = gantt.parentElement;
+    faixa.scrollLeft = Math.max(0, destaque.offsetLeft - faixa.clientWidth / 2 + destaque.clientWidth / 2);
+  }
+  el('gantt-window').textContent = todas.length > MAX_FATIAS_VISIVEIS
+    ? `Mostrando fatias ${inicioJanela+1}–${fimJanela} de ${todas.length}; todas estão incluídas nos cálculos.` : '';
+
+  const legenda = el('legend');
+  legenda.replaceChildren();
+  resultado.processos.forEach((p, i) => {
+    const wrapper = document.createElement('span');
+    wrapper.className = 'legend-entry';
+    const ponto = document.createElement('span');
+    ponto.className = 'dot';
+    ponto.style.background = cor(i);
+    const texto = document.createElement('span');
+    texto.textContent = p.nome;
+    wrapper.append(ponto, texto);
+    legenda.appendChild(wrapper);
+  });
+  if (resultado.tempo_ocioso > 0) {
+    const ociosa = document.createElement('span');
+    ociosa.className = 'legend-entry';
+    ociosa.textContent = '◼ CPU ociosa';
+    legenda.appendChild(ociosa);
+  }
+
+  const corpo = el('result-rows');
+  corpo.replaceChildren();
+  resultado.processos.forEach(p => {
+    const concluido = p.conclusao <= instanteAtual;
+    const valoresLinha = [p.nome, p.chegada, p.execucao,
+      concluido ? p.espera : '—', concluido ? p.conclusao : '—',
+      concluido ? p.ciclo_vida : '—', concluido ? 'Concluído' : 'Pendente'];
+    const linha = document.createElement('tr');
+    valoresLinha.forEach((valor, j) => {
+      const td = document.createElement('td');
+      if (j === 0) {
+        const selo = document.createElement('span');
+        selo.className = 'pill';
+        selo.textContent = valor;
+        td.appendChild(selo);
+      } else {
+        td.textContent = String(valor);
+        if (!concluido && j >= 3) td.className = 'muted';
+      }
+      linha.appendChild(td);
+    });
+    corpo.appendChild(linha);
+  });
+
+  // Painel de estado: a CPU da última rodada executada e a fila ao seu fim.
+  if (!atual) {
+    el('cpu-now').textContent = 'Aguardando início';
+    const iniciais = resultado.processos.filter(p => p.chegada === 0).map(p => p.nome);
+    renderizarFila(iniciais);
+    el('queue-description').textContent = 'Fila de prontos no instante 0';
+    el('status').textContent = iniciais.length
+      ? 'Pronto para iniciar. Clique em Próxima rodada para executar a primeira fatia.'
+      : `CPU inicialmente ociosa: o primeiro processo chegará em t = ${Math.min(...resultado.processos.map(p => p.chegada))}.`;
+  } else {
+    el('cpu-now').textContent = atual.ociosa ? 'CPU ociosa' : atual.processo;
+    renderizarFila(atual.filaDepois);
+    el('queue-description').textContent = `Fila de prontos após t = ${atual.fim}`;
+    if (terminou) {
+      el('status').textContent = `Simulação concluída em t = ${resultado.tempo_total}. ` +
+        `CPU ocupada por ${resultado.tempo_cpu} unidade(s) e ociosa por ${resultado.tempo_ocioso}.`;
+    } else {
+      el('status').textContent = `${atual.ociosa ? 'CPU ociosa' : atual.processo} de t = ${atual.inicio} a ${atual.fim}. ` +
+        `Próxima rodada: ${todas[rodada].ociosa ? 'intervalo ocioso' : todas[rodada].processo}.`;
+    }
+  }
+
+  renderizarEstados();
+  el('prev').disabled = rodada === 0;
+  el('next').disabled = terminou;
+  el('complete').disabled = terminou;
+  el('restart').disabled = rodada === 0;
+  atualizarBotaoReproducao();
+}
+/** Um processo aparece em apenas um estado por vez.
+ * As colunas mostram o INÍCIO da fatia em destaque, não seu fim.
+ * A última tela mostra todos os processos finalizados.
+ */
+function renderizarEstados() {
+  if (!resultado) return;
+  const todas = resultado.fatias;
+  const final = rodada === todas.length;
+  const fatia = rodada > 0 && !final ? todas[rodada - 1] : null;
+  const t = final ? resultado.tempo_total : fatia ? fatia.inicio : 0;
+  let aguardando = [], prontos = [], executando = [], finalizados = [];
+  if (final) {
+    finalizados = resultado.processos.map(p => p.nome);
+    el('states-moment').textContent = `Estado final em t = ${t}`;
+    el('states-note').textContent = 'Todos os processos terminaram. A CPU está livre e a fila de prontos está vazia.';
+  } else {
+    aguardando = resultado.processos.filter(p => p.chegada > t).map(p => p.nome);
+    finalizados = resultado.processos.filter(p => p.conclusao <= t).map(p => p.nome);
+    if (fatia) {
+      executando = fatia.ociosa ? [] : [fatia.processo];
+      prontos = fatia.filaAntes;
+      el('states-moment').textContent = `Durante a fatia ${rodada}: t = ${fatia.inicio} a ${fatia.fim}`;
+      el('states-note').textContent = 'Os estados refletem o início desta fatia. Processos que chegam durante ela entram na fila ao término; a fila acima mostra esse instante final.';
+    } else {
+      prontos = resultado.processos.filter(p => p.chegada === 0).map(p => p.nome);
+      el('states-moment').textContent = 'Antes da primeira fatia: t = 0';
+      el('states-note').textContent = 'Clique em Próxima rodada ou Reproduzir para acompanhar as transições dos processos.';
+    }
+  }
+  const grupos = { waiting:aguardando, ready:prontos, running:executando, done:finalizados };
+  Object.entries(grupos).forEach(([chave, nomes]) => {
+    el('count-' + chave).textContent = String(nomes.length);
+    const container = el('state-' + chave);
+    container.replaceChildren();
+    if (!nomes.length) {
+      const vazio = document.createElement('span');
+      vazio.className = 'state-placeholder';
+      vazio.textContent = 'Nenhum';
+      container.appendChild(vazio);
+    } else {
+      nomes.forEach(nome => {
+        const chip = document.createElement('span');
+        chip.className = 'state-chip ' + chave;
+        chip.textContent = nome;
+        container.appendChild(chip);
+      });
+    }
+  });
+}
+
+// Reprodução automática usa o mesmo avanço manual; nenhum relógio real altera
+// os tempos do algoritmo. A velocidade controla só a animação da interface.
+function intervaloReproducao() {
+  const multiplicador = Number(el('speed').value);
+  return Math.round(1000 / (Number.isFinite(multiplicador) && multiplicador > 0 ? multiplicador : 1));
+}
+function atualizarBotaoReproducao() {
+  const botao = el('autoplay');
+  botao.textContent = reproduzindo ? '⏸ Pausar' : '▶ Reproduzir';
+  botao.setAttribute('aria-pressed', reproduzindo ? 'true' : 'false');
+  botao.disabled = !resultado;
+  el('speed').disabled = !resultado;
+  el('play-hint').textContent = reproduzindo ? 'Reprodução automática em andamento.' :
+    'A velocidade altera a animação, não os tempos calculados.';
+}
+function pararReproducao() {
+  if (timerReproducao !== null) clearTimeout(timerReproducao);
+  timerReproducao = null;
+  reproduzindo = false;
+  atualizarBotaoReproducao();
+}
+function avancarAutomaticamente() {
+  timerReproducao = null;
+  if (!reproduzindo || !resultado) return;
+  rodada = Math.min(rodada + 1, resultado.fatias.length);
+  renderizarResultado();
+  if (rodada >= resultado.fatias.length) {
+    pararReproducao();
+  } else {
+    timerReproducao = setTimeout(avancarAutomaticamente, intervaloReproducao());
+  }
+}
+function iniciarReproducao() {
+  if (!resultado) return;
+  if (reproduzindo) { pararReproducao(); return; }
+  if (rodada >= resultado.fatias.length) { rodada = 0; renderizarResultado(); }
+  reproduzindo = true;
+  atualizarBotaoReproducao();
+  avancarAutomaticamente();
+}
+el('autoplay').addEventListener('click', iniciarReproducao);
+el('speed').addEventListener('change', () => {
+  if (reproduzindo) {
+    clearTimeout(timerReproducao);
+    timerReproducao = setTimeout(avancarAutomaticamente, intervaloReproducao());
+  }
+});
+// Evita o avanço silencioso quando a aba perde visibilidade.
+document.addEventListener('visibilitychange', () => { if (document.hidden) pararReproducao(); });
+
+el('prev').addEventListener('click', () => {
+  pararReproducao();
+  if (resultado) { rodada = Math.max(0, rodada - 1); renderizarResultado(); }
+});
+el('next').addEventListener('click', () => {
+  pararReproducao();
+  if (resultado) { rodada = Math.min(resultado.fatias.length, rodada + 1); renderizarResultado(); }
+});
+el('complete').addEventListener('click', () => {
+  pararReproducao();
+  if (resultado) { rodada = resultado.fatias.length; renderizarResultado(); }
+});
+el('restart').addEventListener('click', () => {
+  pararReproducao();
+  if (resultado) { rodada = 0; renderizarResultado(); }
+});
+
+// ==========================================
+// 4. EXPORTAÇÃO E INICIALIZAÇÃO
+// ==========================================
+function baixar(nome, conteudo, tipo) {
+  const blob = new Blob([conteudo], { type:tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+el('csv').addEventListener('click', () => {
+  if (!resultado) return;
+  const cabecalho = ['Processo','Chegada','Tempo de execução','Tempo de espera','Tempo de conclusão','Ciclo de vida'];
+  const linhas = resultado.processos.map(p =>
+    [p.nome,p.chegada,p.execucao,p.espera,p.conclusao,p.ciclo_vida].join(';'));
+  baixar('resultados_round_robin.csv', '\ufeff' + [cabecalho.join(';'),...linhas].join('\r\n'),
+    'text/csv;charset=utf-8');
+});
+el('print').addEventListener('click', () => {
+  if (resultado) { rodada = resultado.fatias.length; renderizarResultado(); window.print(); }
+});
+
+renderizarProcessos();
+avisoDesatualizado(false);
+validar();
+
+// Disponível para conferência dos cálculos no console e em testes automatizados.
+window.RoundRobin = Object.freeze({ simular });
+</script>
+</body>
+</html>
